@@ -1,0 +1,119 @@
+import tweepy as tweepy
+from textblob import TextBlob
+import pandas as pd
+import numpy as np
+import re
+
+
+# In[87]:
+
+
+consumer_key = 'xxxxxxxxxxxxxxxxxxxxxxxxxx'
+consumer_key_secret='xxxxxxxxxxxxxxxxxxxxxxxx'
+
+access_token ='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+access_token_secret ='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+
+# In[88]:
+
+
+authenticate = tweepy.OAuthHandler(consumer_key, consumer_key_secret)
+
+authenticate.set_access_token(access_token, access_token_secret)
+
+api= tweepy.API(authenticate, wait_on_rate_limit= True)
+
+
+# In[89]:
+
+
+posts =api.user_timeline(screen_name="Trump", count=50, lang="en", tweet_mode="extended")
+
+i=1
+for  tweet in posts[0:50]:
+    print(str(i)+' .'+ tweet.full_text + '\n')
+    i=i+1
+    
+
+
+# In[90]:
+
+
+df = pd.DataFrame([tweet.full_text for tweet in posts], columns=["Tweets"])
+df
+
+
+# In[91]:
+
+
+def cleanText(text):
+    text = re.sub(r'@[A-Za-z0-9]+', '', text)
+    text = re.sub(r'#', '',text)
+    text = re.sub(r'RT[\s]+', '', text)
+    text = re.sub(r'https?:\/\/\S', '', text)
+    return text
+
+
+df['Tweets']= df['Tweets'].apply(cleanText)
+
+
+df
+
+
+# In[92]:
+
+
+def getSubjectivity(text):
+    return TextBlob(text).sentiment.subjectivity
+def getPolarity(text):
+    return TextBlob(text).sentiment.polarity
+
+df['Subjectivity'] = df['Tweets'].apply(getSubjectivity)
+df['Polarity'] = df['Tweets'].apply(getPolarity)
+
+df
+    
+
+
+# In[93]:
+
+def result(points):
+    if points<0:
+        return 'Negative'
+    elif points == 0:
+        return 'Neutral'
+    else:
+        return 'Positive'
+    
+df['Result'] = df['Polarity'].apply(result)
+
+df
+
+
+# In[95]:
+
+
+positive_tweets = df[df.Result =="Positive"]
+positive_tweets
+
+print("Positive percentage: "+str(round(((positive_tweets.shape[0]/df.shape[0])*100)))+"%")
+
+
+# In[96]:
+
+
+negative_tweets = df[df.Result =="Negative"]
+negative_tweets
+
+print("Negative percentage: "+str(round(((negative_tweets.shape[0]/df.shape[0])*100)))+"%")
+
+
+# In[97]:
+
+
+neutral_tweets = df[df.Result =="Neutral"]
+neutral_tweets
+
+print("Neutral percentage: "+str(round(((neutral_tweets.shape[0]/df.shape[0])*100)))+"%")
+
